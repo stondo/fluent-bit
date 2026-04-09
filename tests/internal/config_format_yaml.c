@@ -489,7 +489,7 @@ static void test_processors()
                     sampling_percentage = cfl_kvlist_fetch(sampling_settings->data.as_kvlist,
                                                            "sampling_percentage");
                     TEST_CHECK(sampling_percentage != NULL);
-                    TEST_CHECK(sampling_percentage->type == CFL_VARIANT_INT);
+                    TEST_CHECK(sampling_percentage->type == CFL_VARIANT_UINT);
                     TEST_CHECK(sampling_percentage->data.as_int64 == 25);
                 }
             }
@@ -892,8 +892,10 @@ static void test_metadata_section()
 
     v = flb_cf_section_property_get(cf, s, "config_version");
     TEST_CHECK(v != NULL);
-    TEST_CHECK(v->type == CFL_VARIANT_STRING);
-    TEST_CHECK(strcmp(v->data.as_string, "12345") == 0);
+    TEST_CHECK(v->type == CFL_VARIANT_UINT);
+    if (v != NULL && v->type == CFL_VARIANT_UINT) {
+        TEST_CHECK(v->data.as_uint64 == 12345);
+    }
 
     v = flb_cf_section_property_get(cf, s, "annotations");
     TEST_CHECK(v != NULL);
