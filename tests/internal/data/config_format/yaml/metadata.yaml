@@ -1,0 +1,24 @@
+env:
+    fb_env_name: test
+
+service:
+    flush: 1
+    log_level: info
+
+metadata:
+    usecase: monitor own Fluent Bit
+    config_version: 12345
+    annotations:
+        owner: sre
+        tags:
+            - edge
+            - metrics
+        enabled: true
+
+pipeline:
+    inputs:
+        - name: dummy
+          tag: test
+    outputs:
+        - name: stdout
+          match: "*"

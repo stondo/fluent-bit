@@ -32,6 +32,8 @@
 #define FLB_004 FLB_TESTS_CONF_PATH "/stream_processor.yaml"
 #define FLB_005 FLB_TESTS_CONF_PATH "/plugins.yaml"
 #define FLB_006 FLB_TESTS_CONF_PATH "/upstream.yaml"
+#define FLB_007 FLB_TESTS_CONF_PATH "/metadata.yaml"
+#define FLB_008 FLB_TESTS_CONF_PATH "/other_with_nested_map.yaml"
 
 #define FLB_000_WIN FLB_TESTS_CONF_PATH "\\fluent-bit-windows.yaml"
 #define FLB_BROKEN_PLUGIN_VARIANT FLB_TESTS_CONF_PATH "/broken_plugin_variant.yaml"
@@ -835,6 +837,66 @@ static void test_upstream_servers()
     flb_cf_destroy(cf);
 }
 
+static void test_metadata_section()
+{
+    struct flb_cf *cf;
+    struct flb_cf_section *s;
+    struct cfl_variant *v;
+    struct cfl_variant *nested;
+    struct cfl_variant *tags;
+
+    cf = flb_cf_yaml_create(NULL, FLB_007, NULL, 0);
+    TEST_CHECK(cf != NULL);
+    if (!cf) {
+        exit(EXIT_FAILURE);
+    }
+
+    s = flb_cf_section_get_by_name(cf, "metadata");
+    TEST_CHECK(s != NULL);
+
+    TEST_CHECK(mk_list_size(&cf->others) == 1);
+
+    v = flb_cf_section_property_get(cf, s, "usecase");
+    TEST_CHECK(v != NULL);
+    TEST_CHECK(v->type == CFL_VARIANT_STRING);
+    TEST_CHECK(strcmp(v->data.as_string, "monitor own Fluent Bit") == 0);
+
+    v = flb_cf_section_property_get(cf, s, "config_version");
+    TEST_CHECK(v != NULL);
+    TEST_CHECK(v->type == CFL_VARIANT_STRING);
+    TEST_CHECK(strcmp(v->data.as_string, "12345") == 0);
+
+    v = flb_cf_section_property_get(cf, s, "annotations");
+    TEST_CHECK(v != NULL);
+    TEST_CHECK(v->type == CFL_VARIANT_KVLIST);
+    if (v != NULL && v->type == CFL_VARIANT_KVLIST) {
+        nested = cfl_kvlist_fetch(v->data.as_kvlist, "enabled");
+        TEST_CHECK(nested != NULL);
+        TEST_CHECK(nested->type == CFL_VARIANT_BOOL);
+        TEST_CHECK(nested->data.as_bool == CFL_TRUE);
+
+        tags = cfl_kvlist_fetch(v->data.as_kvlist, "tags");
+        TEST_CHECK(tags != NULL);
+        TEST_CHECK(tags->type == CFL_VARIANT_ARRAY);
+        if (tags != NULL && tags->type == CFL_VARIANT_ARRAY) {
+            TEST_CHECK(tags->data.as_array->entry_count == 2);
+        }
+    }
+
+    flb_cf_destroy(cf);
+}
+
+static void test_other_nested_map_rejected()
+{
+    struct flb_cf *cf;
+
+    cf = flb_cf_yaml_create(NULL, FLB_008, NULL, 0);
+    TEST_CHECK(cf == NULL);
+    if (cf != NULL) {
+        flb_cf_destroy(cf);
+    }
+}
+
 static void test_invalid_property()
 {
     char* test_cases[] = {
@@ -876,6 +938,8 @@ TEST_LIST = {
     { "stream_processor", test_stream_processor},
     { "plugins", test_plugins},
     { "upstream_servers", test_upstream_servers},
+    { "metadata_section", test_metadata_section},
+    { "other_nested_map_rejected", test_other_nested_map_rejected},
     { "invalid_input_property", test_invalid_property},
     { 0 }
 };
