@@ -1950,6 +1950,23 @@ static int consume_event(struct flb_cf *conf, struct local_ctx *ctx,
                     return YAML_FAILURE;
                 }
             }
+            else if (state->section == SECTION_METADATA) {
+                variant = state_variant_parse_scalar(event);
+                if (variant == NULL) {
+                    flb_error("unable to allocate memory for variant");
+                    return YAML_FAILURE;
+                }
+
+                if (flb_cf_section_property_add_variant(conf,
+                                                        state->cf_section->properties,
+                                                        state->key,
+                                                        flb_sds_len(state->key),
+                                                        variant) == NULL) {
+                    cfl_variant_destroy(variant);
+                    flb_error("unable to insert variant");
+                    return YAML_FAILURE;
+                }
+            }
             else {
 
                 /* register key/value pair as a property */
@@ -2417,7 +2434,12 @@ static int consume_event(struct flb_cf *conf, struct local_ctx *ctx,
                     return YAML_FAILURE;
                 }
 
-                if (cfl_kvlist_insert(state->cf_section->properties, state->key, variant) < 0) {
+                if (flb_cf_section_property_add_variant(conf,
+                                                        state->cf_section->properties,
+                                                        state->key,
+                                                        flb_sds_len(state->key),
+                                                        variant) == NULL) {
+                    cfl_variant_destroy(variant);
                     flb_error("unable to insert variant");
                     return YAML_FAILURE;
                 }
