@@ -366,8 +366,12 @@ static void test_processors()
     struct cfl_variant *v;
     struct cfl_variant *logs;
     struct cfl_variant *record_modifier_filter;
+    struct cfl_variant *second_processor;
     struct cfl_variant *records;
     struct cfl_variant *record;
+    struct cfl_variant *sampling_type;
+    struct cfl_variant *sampling_settings;
+    struct cfl_variant *sampling_percentage;
     int idx = 0;
 
     cf = flb_cf_yaml_create(NULL, FLB_002, NULL, 0);
@@ -434,7 +438,7 @@ static void test_processors()
 
         TEST_CHECK(logs->type == CFL_VARIANT_ARRAY);
         if (logs->type == CFL_VARIANT_ARRAY) {
-            TEST_CHECK(logs->data.as_array->entry_count == 1);
+            TEST_CHECK(logs->data.as_array->entry_count == 2);
 
             record_modifier_filter = cfl_array_fetch_by_index(logs->data.as_array, 0);
             TEST_CHECK(record_modifier_filter != NULL);
@@ -462,6 +466,31 @@ static void test_processors()
                         TEST_CHECK(strcmp(record->data.as_string, "powered_by calyptia") == 0);
                         break;
                     }
+                }
+            }
+
+            second_processor = cfl_array_fetch_by_index(logs->data.as_array, 1);
+            TEST_CHECK(second_processor != NULL);
+            TEST_CHECK(second_processor->type == CFL_VARIANT_KVLIST);
+
+            if (second_processor != NULL && second_processor->type == CFL_VARIANT_KVLIST) {
+                sampling_type = cfl_kvlist_fetch(second_processor->data.as_kvlist, "type");
+                TEST_CHECK(sampling_type != NULL);
+                TEST_CHECK(sampling_type->type == CFL_VARIANT_STRING);
+                TEST_CHECK(strcmp(sampling_type->data.as_string, "probabilistic") == 0);
+
+                sampling_settings = cfl_kvlist_fetch(second_processor->data.as_kvlist,
+                                                     "sampling_settings");
+                TEST_CHECK(sampling_settings != NULL);
+                TEST_CHECK(sampling_settings->type == CFL_VARIANT_KVLIST);
+
+                if (sampling_settings != NULL &&
+                    sampling_settings->type == CFL_VARIANT_KVLIST) {
+                    sampling_percentage = cfl_kvlist_fetch(sampling_settings->data.as_kvlist,
+                                                           "sampling_percentage");
+                    TEST_CHECK(sampling_percentage != NULL);
+                    TEST_CHECK(sampling_percentage->type == CFL_VARIANT_INT);
+                    TEST_CHECK(sampling_percentage->data.as_int64 == 25);
                 }
             }
         }
